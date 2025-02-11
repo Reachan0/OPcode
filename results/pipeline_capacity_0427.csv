@@ -1,0 +1,21 @@
+From,To,Pipeline Capacity
+CaptureSite1,CaptureSite3,5000.0
+CaptureSite3,CaptureSite1,50.0
+CaptureSite3,CaptureSite4,50.0
+CaptureSite4,CaptureSite3,50.0
+StorageSite1,CaptureSite1,400.0
+StorageSite1,CaptureSite2,5000.0
+StorageSite1,CaptureSite3,5000.0
+StorageSite1,CaptureSite4,400.0
+StorageSite1,CaptureSite5,5000.0
+CaptureSite1,CaptureSite2,50.0
+CaptureSite1,CaptureSite4,50.0
+CaptureSite1,CaptureSite5,50.0
+CaptureSite2,CaptureSite3,5000.0
+CaptureSite2,CaptureSite4,50.0
+CaptureSite2,CaptureSite5,1899.9999999999955
+CaptureSite3,CaptureSite5,50.0
+CaptureSite4,CaptureSite5,50.0
+CaptureSite3,StorageSite1,5000.0
+CaptureSite5,CaptureSite3,50.0
+CaptureSite5,StorageSite1,295.238095238095
