@@ -1,31 +1,57 @@
+import itertools
 import math
 from pyomo.environ import *
 
 model = ConcreteModel()
 
-CaptureSites = ['CaptureSite1', 'CaptureSite2', 'CaptureSite3', 'CaptureSite4', 'CaptureSite5']
+CaptureSites = ['CaptureSite1', 'CaptureSite2', 'CaptureSite3', 'CaptureSite4', 'CaptureSite5', 'CaptureSite6', 'CaptureSite8', 'CaptureSite9', 'CaptureSite10']
 TransportHubs = []
-StorageSites = ['StorageSite1']
+StorageSites = ['StorageSite1', 'StorageSite2']
 
 model.N = Set(initialize=['CaptureSite1', 'CaptureSite2', 'CaptureSite3',
-                          'CaptureSite4', 'CaptureSite5', 'StorageSite1'])  # 站点集合（instance1包括 N_C=5, N_S=1）
+                          'CaptureSite4', 'CaptureSite5', 'StorageSite1',
+                          'CaptureSite6', 'CaptureSite8', 'CaptureSite9',
+                          'CaptureSite10', 'StorageSite2'])  # 站点集合（instance1包括 N_C=5, N_S=1）
 model.L = Set(initialize=['truck', 'rail', 'pipeline'])  # 运输方式集合 {truck, rail, pipeline}
 rail_connections = [('CaptureSite1', 'CaptureSite3'), ('CaptureSite3', 'CaptureSite1'),
                     ('CaptureSite3', 'CaptureSite4'), ('CaptureSite4', 'CaptureSite3')]
-truck_connections = [('StorageSite1', 'CaptureSite1'), ('StorageSite1', 'CaptureSite2'),
-                     ('StorageSite1', 'CaptureSite3'), ('StorageSite1', 'CaptureSite4'),
-                     ('StorageSite1', 'CaptureSite5'),
-                     ('CaptureSite1', 'CaptureSite2'), ('CaptureSite1', 'CaptureSite3'),
-                     ('CaptureSite1', 'CaptureSite4'), ('CaptureSite1', 'CaptureSite5'),
-                     ('CaptureSite2', 'CaptureSite3'), ('CaptureSite2', 'CaptureSite4'),
-                     ('CaptureSite2', 'CaptureSite5'),
-                     ('CaptureSite3', 'CaptureSite4'), ('CaptureSite3', 'CaptureSite5'),
-                     ('CaptureSite4', 'CaptureSite5')]
-pipeline_connections = [('StorageSite1', 'CaptureSite3'), ('CaptureSite3', 'StorageSite1'),
-                        ('CaptureSite3', 'CaptureSite5'), ('CaptureSite5', 'CaptureSite3'),
-                        ('CaptureSite5', 'StorageSite1'), ('StorageSite1', 'CaptureSite5')]
+
+truck_connections = [
+    ('CaptureSite1', 'StorageSite1'), ('CaptureSite2', 'StorageSite1'),
+    ('CaptureSite3', 'StorageSite1'), ('CaptureSite4', 'StorageSite1'),
+    ('CaptureSite5', 'StorageSite1'), ('CaptureSite6', 'StorageSite1'),
+    ('CaptureSite8', 'StorageSite1'), ('CaptureSite9', 'StorageSite1'),
+    ('CaptureSite10', 'StorageSite1'),
+    ('CaptureSite1', 'StorageSite2'), ('CaptureSite2', 'StorageSite2'),
+    ('CaptureSite3', 'StorageSite2'), ('CaptureSite4', 'StorageSite2'),
+    ('CaptureSite5', 'StorageSite2'), ('CaptureSite6', 'StorageSite2'),
+    ('CaptureSite8', 'StorageSite2'), ('CaptureSite9', 'StorageSite2'),
+    ('CaptureSite10', 'StorageSite2'),
+]
+
+
+sites = [f'CaptureSite{i}' for i in [1, 2, 3, 4, 5, 6, 8, 9, 10]]
+pairs = list(itertools.permutations(sites, 2))
+truck_connections = truck_connections + pairs
+
+pipeline_connections = [
+    ('CaptureSite1', 'StorageSite1'), ('CaptureSite2', 'StorageSite1'),
+    ('CaptureSite3', 'StorageSite1'), ('CaptureSite4', 'StorageSite1'),
+    ('CaptureSite5', 'StorageSite1'), ('CaptureSite6', 'StorageSite1'),
+    ('CaptureSite8', 'StorageSite1'), ('CaptureSite9', 'StorageSite1'),
+    ('CaptureSite10', 'StorageSite1'),
+    ('CaptureSite1', 'StorageSite2'), ('CaptureSite2', 'StorageSite2'),
+    ('CaptureSite3', 'StorageSite2'), ('CaptureSite4', 'StorageSite2'),
+    ('CaptureSite5', 'StorageSite2'), ('CaptureSite6', 'StorageSite2'),
+    ('CaptureSite8', 'StorageSite2'), ('CaptureSite9', 'StorageSite2'),
+    ('CaptureSite10', 'StorageSite2'),
+]
+pipeline_connections = pipeline_connections + pairs
 model.A = Set(dimen=2, initialize=rail_connections + truck_connections + pipeline_connections)  # 运输连接集合 二维
 model.T = RangeSet(0, 25)  # 规划期 0~25年
+model.P = Set(dimen=2, initialize=pipeline_connections)
+
+
 
 E_values = {
     'CaptureSite1': 200,
@@ -33,8 +59,19 @@ E_values = {
     'CaptureSite3': 400,
     'CaptureSite4': 200,
     'CaptureSite5': 350,
-    'StorageSite1': 0  # 存储站点不会排放 CO₂
+    'CaptureSite6': 50,
+    'CaptureSite8': 65,
+    'CaptureSite9': 90,
+    'CaptureSite10': 45,
+    'StorageSite1': 0,
+    'StorageSite2': 0
 }
+
+storage_availability_t = {
+    'StorageSite1': 0,
+    'StorageSite2': 14
+}
+
 
 model.E = Param(model.N, initialize=E_values, within=NonNegativeReals)  # 每个站点的 CO₂ 排放量
 
@@ -43,11 +80,10 @@ model.Q_init = Param(initialize=Q_init_value, within=NonNegativeReals)  # 初始
 Q_T_value = Q_init_value * 0.2  # 80% 减排目标(这里是我根据欧盟2050年计划设定的 可以你们再找找看)
 model.Q_T = Param(initialize=Q_T_value, within=NonNegativeReals)  # w目标排放量
 
-beta_1 = {'truck': 1000000, 'rail': 1, 'pipeline': 0.05}
-beta_2 = {'truck': 0, 'rail': 0.5, 'pipeline': 0}
-
-model.alpha_1 = Param(initialize=0.3, within=NonNegativeReals, mutable=True)
-model.alpha_2 = Param(initialize=27, within=NonNegativeReals, mutable=True)
+beta_1 = {'truck': 5, 'rail': 1.6, 'pipeline': 0.08}
+beta_2 = {'truck': 44, 'rail': 31, 'pipeline': 0}
+model.alpha_1 = Param(initialize=0.0005, within=NonNegativeReals, mutable=True)
+model.alpha_2 = Param(initialize=3000, within=NonNegativeReals, mutable=True)
 
 ################################################
 # 是否有铁路连接
@@ -62,7 +98,12 @@ node_coords = {
     'CaptureSite3': (10, 4),
     'CaptureSite4': (5, 2),
     'CaptureSite5': (0, 0),
-    'StorageSite1': (0, 10)
+    'CaptureSite6': (4.5, 1),
+    'CaptureSite8': (8.5, 0),
+    'CaptureSite9': (2, 6),
+    'CaptureSite10': (7, 8),
+    'StorageSite1': (0, 10),
+    'StorageSite2': (6, 4)
 }
 L_ij_values = {(i, j): math.sqrt((node_coords[i][0] - node_coords[j][0]) ** 2 +
                                  (node_coords[i][1] - node_coords[j][1]) ** 2)
@@ -110,6 +151,7 @@ def total_cost(model):
 
 model.obj = Objective(rule=total_cost, sense=minimize)
 
+model.slack = Var(CaptureSites, model.T, within=NonNegativeReals)
 
 ################################################################
 # 5. Constraints (约束)
@@ -118,19 +160,40 @@ model.obj = Objective(rule=total_cost, sense=minimize)
 # 进入站点的流量 - 离开站点的流量 = 站点剩余排放量
 def flow_balance(model, i, t):
     if i in CaptureSites:
-        return sum(model.f[j, i, l, t] for j in model.N for l in model.L if (j, i) in model.A) - \
-            sum(model.f[i, j, l, t] for j in model.N for l in model.L if (i, j) in model.A) == \
-            model.E[i] * (1 - 0.9 * model.x[i, t])
-
+        if t == 0:
+            return Constraint.Skip
+        else:
+            inflow = sum(model.f[j, i, l, t] for j in model.N for l in model.L if (j, i) in model.A)
+            # inflow = model.E[i]
+            outflow = sum(model.f[i, j, l, t] for j in model.N for l in model.L if (i, j) in model.A)
+            # 添加松弛变量 slack[i,t]，允许轻微违背，但会受到高惩罚
+            return outflow - inflow + model.slack[i, t] == model.E[i] * (1 - 0.9 * model.x[i, t])
     elif i in StorageSites:
-        return sum(model.f[j, i, l, t] for j in model.N for l in model.L if (j, i) in model.A) >= 0
-
-    elif i in TransportHubs:
-        return sum(model.f[j, i, l, t] for j in model.N for l in model.L if (j, i) in model.A) - \
-            sum(model.f[i, j, l, t] for j in model.N for l in model.L if (i, j) in model.A) == 0
-
+        if t < storage_availability_t.get(i, 0):
+            arcs_in = [(j, l) for j in model.N for l in model.L if (j, i) in model.A]
+            if len(arcs_in) == 0:
+                return Constraint.Feasible
+            else:
+                return sum(model.f[j, i, l, t] for (j, l) in arcs_in) == 0
+        else:
+            arcs_out = [(j, l) for j in model.N for l in model.L if (i, j) in model.A]
+            if len(arcs_out) == 0:
+                return Constraint.Feasible
+            else:
+                return sum(model.f[i, j, l, t] for (j, l) in arcs_out) == 0
+    else:
+        return Constraint.Skip
 
 model.flow_balance_constraint = Constraint(model.N, model.T, rule=flow_balance)
+
+
+def storage_pipeline_link(model, i, j, t):
+    if j in StorageSites and t < storage_availability_t.get(j, 0):
+        return model.s[i, j, t] == 0
+    else:
+        return Constraint.Skip
+
+model.storage_pipeline_link = Constraint(model.P, model.T, rule=storage_pipeline_link)
 
 
 # 铁路运输方式约束
@@ -202,7 +265,6 @@ model.total_storage_capacity_constraint = Constraint(model.T, rule=total_storage
 #     return sum(model.s[i, j, t] for t in mofdel.T) <= 3  # 限制最多建造 3 条管道
 # model.limited_pipeline_construction_constraint = Constraint(model.A, rule=limited_pipeline_construction)
 
-
 print("开始求解模型……")
 solver = SolverFactory('gurobi')
 results = solver.solve(model, tee=True, options={
@@ -230,6 +292,10 @@ else:
     # 输出部分关键变量值以便检查
     for t in sorted(model.T):
         print(f"时段 {t}: 总排放 Q = {value(model.Q[t])}")
+    for i in CaptureSites:
+        for t in sorted(model.T):
+            if t > 0:
+                print(f"{i}, t={t}: slack = {value(model.slack[i,t])}, x = {value(model.x[i,t])}")
 
 # for i in model.N:
 #     for t in model.T:
